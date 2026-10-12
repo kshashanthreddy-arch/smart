@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                String         @id @default(uuid())
+  name              String
+  email             String         @unique
+  password          String         @default("student123")
+  avatar            String?
+  targetGpa         Float          @default(3.8)
+  studyStreak       Int            @default(3)
+  totalStudyMinutes Int            @default(120)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  subjects          Subject[]
+  tasks             Task[]
+  notes             Note[]
+  flashcardDecks    FlashcardDeck[]
+  quizzes           Quiz[]
+  studySessions     StudySession[]
+}
+
+model Subject {
+  id                String         @id @default(uuid())
+  userId            String
+  code              String
+  title             String
+  color             String         @default("#4f46e5")
+  instructor        String?
+  room              String?
+  credits           Int            @default(3)
+  targetGrade       String?        @default("A")
+  attendancePresent Int            @default(18)
+  attendanceTotal   Int            @default(20)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks             Task[]
+  notes             Note[]
+  flashcardDecks    FlashcardDeck[]
+  quizzes           Quiz[]
+  studySessions     StudySession[]
+}
+
+model Task {
+  id               String       @id @default(uuid())
+  userId           String
+  subjectId        String?
+  title            String
+  description      String?
+  dueDate          DateTime?
+  priority         String       @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status           String       @default("TODO")   // TODO, IN_PROGRESS, COMPLETED
+  estimatedMinutes Int?         @default(45)
+  weight           Float?       @default(10)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject          Subject?     @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+}
+
+model Note {
+  id          String    @id @default(uuid())
+  userId      String
+  subjectId   String?
+  title       String
+  content     String
+  summary     String?
+  tags        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+}
+
+model FlashcardDeck {
+  id          String      @id @default(uuid())
+  userId      String
+  subjectId   String?
+  title       String
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject?    @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  cards       Flashcard[]
+}
+
+model Flashcard {
+  id           String        @id @default(uuid())
+  deckId       String
+  front        String
+  back         String
+  difficulty   String        @default("MEDIUM") // EASY, MEDIUM, HARD
+  reviewCount  Int           @default(0)
+  mastered     Boolean       @default(false)
+  lastReviewed DateTime?
+  createdAt    DateTime      @default(now())
+
+  deck         FlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+}
+
+model Quiz {
+  id             String         @id @default(uuid())
+  userId         String
+  subjectId      String?
+  title          String
+  topic          String
+  score          Int?
+  totalQuestions Int            @default(5)
+  completedAt    DateTime?
+  createdAt      DateTime       @default(now())
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject        Subject?       @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  questions      QuizQuestion[]
+}
+
+model QuizQuestion {
+  id            String   @id @default(uuid())
+  quizId        String
+  question      String
+  options       String   // JSON string of string array: ["A", "B", "C", "D"]
+  correctAnswer Int      // 0, 1, 2, 3
+  userAnswer    Int?
+  explanation   String?
+
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model StudySession {
+  id              String   @id @default(uuid())
+  userId          String
+  subjectId       String?
+  durationMinutes Int
+  sessionType     String   @default("POMODORO") // POMODORO, SHORT_BREAK, LONG_BREAK, FREE_STUDY
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject         Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+}
